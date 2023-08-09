@@ -1,0 +1,1 @@
+D:\Python\Python_protable\python.exe D:\Python\Projects\automation_tool\Main.py

@@ -1,9 +1,10 @@
 import tkinter as tk
 from tkinter import messagebox
+from interface import AutoTesting
 
 class MenuBar:
-    def __init__(self):
-        self.root = tk.Tk()
+    def __init__(self, root):
+        self.root = root
         self.root.title("自動化工具程式")
 
         # 建立選單列
@@ -11,8 +12,8 @@ class MenuBar:
 
         # 建立功能選單
         self.function_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.function_menu.add_command(label="功能1", command=self.function1_action)
-        self.function_menu.add_command(label="功能2", command=self.function2_action)
+        self.function_menu.add_command(label="自動化測試", command=self.auto_testing)
+        self.function_menu.add_command(label="改檔", command=self.change_dw_data)
         self.function_menu.add_command(label="功能3", command=self.function3_action)
 
         # 建立設定選單
@@ -38,11 +39,19 @@ class MenuBar:
     def run(self):
         self.root.mainloop()
 
-    # 功能選單的動作
-    def function1_action(self):
-        messagebox.showinfo("功能1", "執行功能1")
+    def clear_window(self):
+        # 清空主畫面，保留menu
+        for widget in self.root.winfo_children():
+            if not isinstance(widget, tk.Menu):
+                widget.destroy()
 
-    def function2_action(self):
+    # 功能選單的動作
+    def auto_testing(self):
+        self.clear_window()
+        AutoTesting.AutoTesting(self.root)
+
+    def change_dw_data(self):
+        self.clear_window()
         messagebox.showinfo("功能2", "執行功能2")
 
     def function3_action(self):
