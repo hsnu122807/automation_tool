@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import messagebox
 from interface import AutoTesting
+from interface import ChangeDwData
 
 class MenuBar:
     def __init__(self, root):
@@ -39,19 +40,20 @@ class MenuBar:
     def run(self):
         self.root.mainloop()
 
-    def clear_window(self):
+    def clear_window(self, frame):
         # 清空主畫面，保留menu
-        for widget in self.root.winfo_children():
+        for widget in frame.winfo_children():
             if not isinstance(widget, tk.Menu):
                 widget.destroy()
 
     # 功能選單的動作
     def auto_testing(self):
-        self.clear_window()
+        self.clear_window(self.root)
         AutoTesting.AutoTesting(self.root)
 
     def change_dw_data(self):
-        self.clear_window()
+        self.clear_window(self.root)
+        ChangeDwData.ChangeDwData(self.root)
 
     def function3_action(self):
         messagebox.showinfo("功能3", "執行功能3")
