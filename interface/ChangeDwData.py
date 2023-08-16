@@ -146,8 +146,7 @@ class ChangeDwData:
     def clear_window(self, frame):
         # 清空畫面
         for widget in frame.winfo_children():
-            if not isinstance(widget, tk.Menu):
-                widget.destroy()
+            widget.destroy()
 
 
     def excel_gen_code_view(self, frame):
