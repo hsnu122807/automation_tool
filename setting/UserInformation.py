@@ -1,5 +1,4 @@
 import getpass
-import platform
 import subprocess
 from tkinter import messagebox
 

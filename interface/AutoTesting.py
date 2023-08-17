@@ -1,11 +1,13 @@
 import tkinter as tk
 from tkinter import filedialog
 from interface import LogDisplay
+from setting import UserInformation
+from setting import LoadResource
 import os
 from os import listdir
 from os.path import isfile, isdir, join
 import re
-
+import paramiko
 
 class AutoTesting:
     def __init__(self, root):
@@ -80,8 +82,7 @@ class AutoTesting:
             elif index == 1:
                 self.show_edw_gen_dir_file_step(self.step_frame)
             elif index == 2:
-                self.log_display.info('此功能開發中，尚未啟用')
-                #self.show_edw_upload(self.step_frame)
+                self.show_edw_upload_step(self.step_frame)
             elif index == 3:
                 self.log_display.info('此功能開發中，尚未啟用')
                 #self.show_edw_cicd(self.step_frame)
@@ -142,10 +143,16 @@ class AutoTesting:
 
 
     def get_test_file_path(self):
-        # 選擇檔案後回傳檔案路徑與名稱
+        # 選擇資料夾後回傳檔案路徑與名稱
         file_path = filedialog.askdirectory()
         self.entry_test_file_path.delete(0,tk.END)
         self.entry_test_file_path.insert(0,file_path)
+
+    def get_program_file_path(self):
+        # 選擇資料夾後回傳檔案路徑與名稱
+        file_path = filedialog.askdirectory()
+        self.entry_program_file_path.delete(0,tk.END)
+        self.entry_program_file_path.insert(0,file_path)
 
 
     def show_edw_common_info(self, frame):
@@ -177,7 +184,7 @@ class AutoTesting:
         if not isdir(self.path):
             os.mkdir(self.path)
             self.log_display.info('建立資料夾成功，路徑: ' + self.path)
-        child_dir_list = ['上線文件','上線程式','測試資料']
+        child_dir_list = ['上線文件','上線程式','測試資料',r'測試資料\APP']
         for child_dir in child_dir_list:
             cur_dir = join(self.path,child_dir)
             if not isdir(cur_dir):
@@ -211,8 +218,8 @@ class AutoTesting:
         self.entry_test_file_path.grid(row=1, column=1, padx=10, pady=5)
         self.btn_get_test_file_path = tk.Button(frame, text="選擇資料夾", command=self.get_test_file_path)
         self.btn_get_test_file_path.grid(row=1, column=2, padx=10, pady=5)
-        self.btn_get_test_file_path = tk.Button(frame, text="產出dir檔", command=self.gen_dir_file)
-        self.btn_get_test_file_path.grid(row=2, column=1, padx=10, pady=5)
+        self.btn_gen_dir_file = tk.Button(frame, text="產出dir檔", command=self.gen_dir_file)
+        self.btn_gen_dir_file.grid(row=2, column=1, padx=10, pady=5)
 
 
     def gen_dir_file(self):
@@ -268,11 +275,181 @@ class AutoTesting:
                     self.log_display.info('產出dir檔案: ' + dir_file_name)
         except IOError:
             self.log_display.error('此路徑不存在: ' + path)
-        except Exception:
+        except Exception as e:
             self.log_display.error('未預期的錯誤，請通知自動化工具維護者')
-            print(Exception)
+            self.log_display.error(str(e))
 
 
+    def show_edw_upload_step(self, frame):
+        work_file_path = self.entry_work_file_path.get()
+        icontect_no = self.entry_icontect_no.get()
+        describe = self.entry_describe.get()
+        
+        user_info = UserInformation.UserInformation()
+        bank_no = user_info.get_user_bank_no()
+        
+        self.label_r6_acc = tk.Label(frame, text="UT R6帳號:")
+        self.label_r6_acc.grid(row=0, column=0, padx=10, pady=5)
+        self.entry_r6_acc = tk.Entry(frame)
+        self.entry_r6_acc.insert(0, 'dod'+bank_no[2:])
+        self.entry_r6_acc.grid(row=0, column=1, padx=10, pady=5)
+        
+        self.label_r6_pwd = tk.Label(frame, text="UT R6密碼:")
+        self.label_r6_pwd.grid(row=1, column=0, padx=10, pady=5)
+        self.entry_r6_pwd = tk.Entry(frame,show='*')
+        self.entry_r6_pwd.grid(row=1, column=1, padx=10, pady=5)
+        
+        
+        self.label_program_file_path = tk.Label(frame, text="程式資料夾:")
+        self.label_program_file_path.grid(row=2, column=0, padx=10, pady=5)
+        self.entry_program_file_path = tk.Entry(frame)
+        self.entry_program_file_path.insert(0,join(work_file_path, icontect_no + '-' + describe, r'上線程式\APP'))
+        self.entry_program_file_path.grid(row=2, column=1, padx=10, pady=5)
+        self.btn_get_program_file_path = tk.Button(frame, text="選擇資料夾", command=self.get_program_file_path)
+        self.btn_get_program_file_path.grid(row=2, column=2, padx=10, pady=5)
+        self.btn_upload_program = tk.Button(frame, text="上傳 ETL程式 至UT環境", command=self.upload_program)
+        self.btn_upload_program.grid(row=2, column=3, padx=10, pady=5)
+        
+        self.label_test_file_path = tk.Label(frame, text="測試檔案資料夾:")
+        self.label_test_file_path.grid(row=3, column=0, padx=10, pady=5)
+        self.entry_test_file_path = tk.Entry(frame)
+        self.entry_test_file_path.insert(0,join(work_file_path, icontect_no + '-' + describe, '測試資料'))
+        self.entry_test_file_path.grid(row=3, column=1, padx=10, pady=5)
+        self.btn_get_test_file_path = tk.Button(frame, text="選擇資料夾", command=self.get_test_file_path)
+        self.btn_get_test_file_path.grid(row=3, column=2, padx=10, pady=5)
+        self.btn_upload_test_data = tk.Button(frame, text="上傳 測試資料 至UT環境", command=self.upload_test_data)
+        self.btn_upload_test_data.grid(row=3, column=3, padx=10, pady=5)
+        
+        self.btn_upload_program_and_test_data = tk.Button(frame, text="上傳 ETL程式&測試資料 至UT環境", command=self.upload_program_and_test_data)
+        self.btn_upload_program_and_test_data.grid(row=4, column=1, padx=10, pady=5)
+
+    def upload_program(self):
+        
+        # 設定SFTP伺服器的連線資訊
+        res = LoadResource.LoadResource()
+        ut_r6_info = res.get_ut_r6_info()
+        sftp_hostname = ut_r6_info['IP']
+        sftp_port = ut_r6_info['SSH_PORT']
+        sftp_path = ut_r6_info['SFTP_PATH']
+        sftp_username = self.entry_r6_acc.get()
+        sftp_password = self.entry_r6_pwd.get()
+        if len(sftp_username) == 0 or len(sftp_password) == 0:
+            self.log_display.error('未輸入帳號或密碼')
+        else:
+            # 設定本地檔案路徑及檔案名稱
+            local_folder_path = self.entry_program_file_path.get()
+            
+            if local_folder_path[-4:] == r'\APP':
+                # 設定遠端AIX主機的檔案路徑及檔案名稱
+                remote_folder_path  = sftp_path
+                try:
+                    # 建立SSH客戶端連線
+                    ssh_client = paramiko.SSHClient()
+                    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                    ssh_client.connect(hostname=sftp_hostname, port=sftp_port, username=sftp_username, password=sftp_password)
+                    # 建立SFTP客戶端連線
+                    sftp_client = ssh_client.open_sftp()
+                    # 執行資料夾上傳
+                    self.upload_folder(ssh_client, sftp_client, local_folder_path, remote_folder_path)
+                    self.log_display.info('ETL程式上傳完成')
+                except Exception as e:
+                    if str(e) == 'Authentication failed.':
+                        self.log_display.error('帳號或密碼輸入錯誤')
+                    else:
+                        self.log_display.error('未預期的錯誤，請通知自動化工具維護者')
+                        self.log_display.error(str(e))
+                        print(e)
+                finally:
+                    # 關閉SFTP客戶端連線
+                    sftp_client.close()
+                    # 關閉SSH客戶端連線
+                    ssh_client.close()
+            else:
+                self.log_display.error('程式資料夾命名須為APP')
+                self.log_display.hint('此功能會將程式資料夾下的資料夾與ETL檔案SFTP至R6 UT環境的APP目錄下，請確保所選資料夾目錄架構的正確性!')
+        
+
+    def upload_test_data(self):
+        # 設定SFTP伺服器的連線資訊
+        res = LoadResource.LoadResource()
+        ut_r6_info = res.get_ut_r6_info()
+        sftp_hostname = ut_r6_info['IP']
+        sftp_port = ut_r6_info['SSH_PORT']
+        sftp_path = ut_r6_info['SFTP_PATH']
+        sftp_username = self.entry_r6_acc.get()
+        sftp_password = self.entry_r6_pwd.get()
+        if len(sftp_username) == 0 or len(sftp_password) == 0:
+            self.log_display.error('未輸入帳號或密碼')
+        else:
+            # 設定本地檔案路徑及檔案名稱
+            local_folder_path = self.entry_program_file_path.get()
+            
+            if local_folder_path[-4:] == r'\APP':
+                # 設定遠端AIX主機的檔案路徑及檔案名稱
+                remote_folder_path  = sftp_path
+                try:
+                    # 建立SSH客戶端連線
+                    ssh_client = paramiko.SSHClient()
+                    ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                    ssh_client.connect(hostname=sftp_hostname, port=sftp_port, username=sftp_username, password=sftp_password)
+                    # 建立SFTP客戶端連線
+                    sftp_client = ssh_client.open_sftp()
+                    # 執行資料夾上傳
+                    self.upload_folder(ssh_client, sftp_client, local_folder_path, remote_folder_path)
+                    self.log_display.info('測試資料上傳完成')
+                except Exception as e:
+                    if str(e) == 'Authentication failed.':
+                        self.log_display.error('帳號或密碼輸入錯誤')
+                    else:
+                        self.log_display.error('未預期的錯誤，請通知自動化工具維護者')
+                        self.log_display.error(str(e))
+                        print(e)
+                finally:
+                    # 關閉SFTP客戶端連線
+                    sftp_client.close()
+                    # 關閉SSH客戶端連線
+                    ssh_client.close()
+            else:
+                self.log_display.error('程式資料夾命名須為APP')
+                self.log_display.hint('此功能會將程式資料夾下的資料夾與檔案SFTP至R6 UT環境的APP目錄下，請確保所選資料夾目錄架構的正確性!')
+
+    def upload_program_and_test_data(self):
+        self.upload_program()
+        self.upload_test_data()
+        
+    
+    def create_remote_directory(self, sftp_client, remote_path):
+        try:
+            sftp_client.mkdir(remote_path)
+            self.log_display.info('於UT環境建立資料夾: ' + remote_item)
+        except OSError:
+            pass
+
+    def set_remote_permissions(self, ssh_client, remote_path):
+        # 執行遠端的chmod 777指令
+        command = f"chmod 777 {remote_path}"
+        stdin, stdout, stderr = ssh_client.exec_command(command)
+        # 可選：若需要檢查指令是否執行成功，可以印出stdout和stderr的內容
+    #     print(stdout.read().decode())
+    #     print(stderr.read().decode())
+        
+    def upload_folder(self, ssh_client, sftp_client, local_path, remote_path):
+        self.create_remote_directory(sftp_client, remote_path)
+        self.set_remote_permissions(ssh_client, remote_path)  # 設定目錄權限為777
+        for item in os.listdir(local_path):
+            local_item = os.path.join(local_path, item)
+            local_item = local_item.replace('\\', '/')
+            remote_item = os.path.join(remote_path, item)
+            remote_item = remote_item.replace('\\', '/')
+            if os.path.isfile(local_item):
+                if local_item[-3:] == '.pl' or local_item[-4:] == '.sql':
+                    sftp_client.put(local_item, remote_item)
+                    self.set_remote_permissions(ssh_client, remote_item)  # 設定檔案權限為777
+                    self.log_display.info('上傳 ' + local_item + ' 至 ' + remote_item + ' ，並將權限改為777')
+                else:
+                    self.log_display.warn(local_item + ' 並非.sql或.pl檔案，沒有上傳至R6 UT環境')
+            elif os.path.isdir(local_item):
+                self.upload_folder(ssh_client, sftp_client, local_item, remote_item)
     #def show_edw_upload(self, frame):
     #
     #def show_edw_cicd(self, frame):
