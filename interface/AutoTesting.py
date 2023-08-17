@@ -2,7 +2,9 @@ import tkinter as tk
 from tkinter import filedialog
 from interface import LogDisplay
 import os
-from os.path import join,isdir
+from os import listdir
+from os.path import isfile, isdir, join
+import re
 
 
 class AutoTesting:
@@ -68,23 +70,24 @@ class AutoTesting:
     def on_edw_list_box_select(self, evt):
         # Note here that Tkinter passes an event object to onselect()
         w = evt.widget
-        index = int(w.curselection()[0])
-        value = w.get(index)
-        self.log_display.info("使用者操作：執行功能-" + value)
-        self.clear_window(self.step_frame)
-        if index == 0:
-            self.show_edw_create_directory_step(self.step_frame)
-        elif index == 1:
-            self.show_edw_gen_dir_file_step(self.step_frame)
-        elif index == 2:
-            self.log_display.info('此功能開發中，尚未啟用')
-            #self.show_edw_upload(self.step_frame)
-        elif index == 3:
-            self.log_display.info('此功能開發中，尚未啟用')
-            #self.show_edw_cicd(self.step_frame)
-        elif index == 4:
-            self.log_display.info('此功能開發中，尚未啟用')
-            #self.show_edw_check_doc(self.step_frame)
+        if len(w.curselection()) > 0:
+            index = int(w.curselection()[0])
+            value = w.get(index)
+            self.log_display.info("使用者操作：執行功能-" + value)
+            self.clear_window(self.step_frame)
+            if index == 0:
+                self.show_edw_create_directory_step(self.step_frame)
+            elif index == 1:
+                self.show_edw_gen_dir_file_step(self.step_frame)
+            elif index == 2:
+                self.log_display.info('此功能開發中，尚未啟用')
+                #self.show_edw_upload(self.step_frame)
+            elif index == 3:
+                self.log_display.info('此功能開發中，尚未啟用')
+                #self.show_edw_cicd(self.step_frame)
+            elif index == 4:
+                self.log_display.info('此功能開發中，尚未啟用')
+                #self.show_edw_check_doc(self.step_frame)
         
     def on_etl_list_box_select(self, evt):
         # Note here that Tkinter passes an event object to onselect()
@@ -138,6 +141,13 @@ class AutoTesting:
         self.entry_work_file_path.insert(0,file_path)
 
 
+    def get_test_file_path(self):
+        # 選擇檔案後回傳檔案路徑與名稱
+        file_path = filedialog.askdirectory()
+        self.entry_test_file_path.delete(0,tk.END)
+        self.entry_test_file_path.insert(0,file_path)
+
+
     def show_edw_common_info(self, frame):
         self.label_work_file_path = tk.Label(frame, text="工作區資料夾:")
         self.label_work_file_path.grid(row=0, column=0, padx=10, pady=5)
@@ -180,30 +190,87 @@ class AutoTesting:
         self.btn_create_directory = tk.Button(frame, text="建立上線文件/上線程式/測試資料資料夾", command=self.create_child_directory)
         self.btn_create_directory.grid(row=0, column=0, padx=10, pady=5)
     def show_edw_gen_dir_file_step(self, frame):
-        self.gen_dir_file_type_radio_btn_frame = tk.Frame(frame, pady=10, padx=10)
-        self.gen_dir_file_type_radio_btn_frame.pack(fill=tk.BOTH, expand=True)
-    
+        self.str_have_flg_file = '有flg測試檔(建議)'
+        self.str_no_flg_file = '無flg測試檔'
         self.radio_var_gen_dir_type = tk.StringVar()
-        self.radio_var_gen_dir_type.set('有flg測試檔(建議)')
-        self.radio_btn_have_flg_file = tk.Radiobutton(gen_dir_file_type_radio_btn_frame, text='有flg測試檔(建議)', variable=self.radio_var_gen_dir_type, value='有flg測試檔(建議)')    # 放入第一個單選按鈕
-        self.radio_btn_have_flg_file.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.radio_var_gen_dir_type.set(self.str_have_flg_file)
+        self.radio_btn_have_flg_file = tk.Radiobutton(frame, text=self.str_have_flg_file, variable=self.radio_var_gen_dir_type, value=self.str_have_flg_file)    # 放入第一個單選按鈕
+        self.radio_btn_have_flg_file.grid(row=0, column=0, padx=10, pady=5)
         self.radio_btn_have_flg_file.select()
-        self.radio_btn_no_flg_file = tk.Radiobutton(gen_dir_file_type_radio_btn_frame, text='無flg測試檔', variable=self.radio_var_gen_dir_type, value='無flg測試檔')   # 放入第二個單選按鈕
-        self.radio_btn_no_flg_file.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        self.radio_btn_no_flg_file = tk.Radiobutton(frame, text=self.str_no_flg_file, variable=self.radio_var_gen_dir_type, value=self.str_no_flg_file)   # 放入第二個單選按鈕
+        self.radio_btn_no_flg_file.grid(row=0, column=1, padx=10, pady=5)
         self.radio_var_gen_dir_type.trace("w", self.radio_selection_changed)
         
-        self.gen_dir_file_info_frame = tk.Frame(frame, pady=10, padx=10)
-        self.gen_dir_file_info_frame.pack(fill=tk.BOTH, expand=True)
-        
         self.label_test_file_path = tk.Label(frame, text="測試檔案資料夾:")
-        self.label_test_file_path.grid(row=0, column=0, padx=10, pady=5)
+        self.label_test_file_path.grid(row=1, column=0, padx=10, pady=5)
+        work_file_path = self.entry_work_file_path.get()
+        icontect_no = self.entry_icontect_no.get()
+        describe = self.entry_describe.get()
         self.entry_test_file_path = tk.Entry(frame)
-        self.entry_test_file_path.insert(0,r"D:\自動化測試")
-        self.entry_test_file_path.grid(row=0, column=1, padx=10, pady=5)
+        self.entry_test_file_path.insert(0,join(work_file_path, icontect_no + '-' + describe, '測試資料'))
+        self.entry_test_file_path.grid(row=1, column=1, padx=10, pady=5)
         self.btn_get_test_file_path = tk.Button(frame, text="選擇資料夾", command=self.get_test_file_path)
-        self.btn_get_test_file_path.grid(row=0, column=2, padx=10, pady=5)
+        self.btn_get_test_file_path.grid(row=1, column=2, padx=10, pady=5)
         self.btn_get_test_file_path = tk.Button(frame, text="產出dir檔", command=self.gen_dir_file)
-        self.btn_get_test_file_path.grid(row=1, column=1, padx=10, pady=5)
+        self.btn_get_test_file_path.grid(row=2, column=1, padx=10, pady=5)
+
+
+    def gen_dir_file(self):
+        path = self.entry_test_file_path.get()
+        gen_dir_type = self.radio_var_gen_dir_type.get()
+        
+        try:
+            # 取得所有檔案與子目錄名稱
+            files = listdir(path)
+
+            flg_file_name_list = []
+            txt_file_name_list = []
+            if gen_dir_type == self.str_have_flg_file:
+                # 把flg改檔名為dir
+                self.log_display.info('有flg檔案，將flg檔改名為dir檔')
+                for f in files:
+                    fullpath = join(path, f)
+                    if isfile(fullpath) and len(re.findall('[0-9]{8}.txt$',f)) > 0:
+                        txt_file_name_list.append(f)
+                        self.log_display.info('找到txt檔案: ' + f)
+                    elif isfile(fullpath) and len(re.findall('.flg$',f))>0:
+                        flg_file_name_list.append(f)
+                        self.log_display.info('找到flg檔案: ' + f)
+                if len(flg_file_name_list) == 0:
+                    self.log_display.error('路徑下未找到flg檔案: ' + path)
+                else:
+                    for flg_file_name in flg_file_name_list:
+                        file = flg_file_name[:-4]
+                        for txt_file_name in txt_file_name_list:
+                            if file in txt_file_name and len(file) + 12 == len(txt_file_name):
+                                date = txt_file_name[-12:-4]
+                                current_full_path = join(path, flg_file_name)
+                                dir_file_name = 'dir.'+file.upper()+date
+                                new_full_path = join(path, dir_file_name)
+                                os.rename(current_full_path,new_full_path)
+                                self.log_display.info('將flg檔案 ' + flg_file_name + ' 改名為 ' + dir_file_name)
+                                break
+            elif gen_dir_type == self.str_no_flg_file:
+                # 直接根據txt產出dir
+                self.log_display.info('無flg檔案，根據txt檔生成dir檔')
+                self.log_display.hint('若為首次導檔仍建議請前端提供flg，確保flg檔案內容正確性!')
+                for f in files:
+                    fullpath = join(path, f)
+                    if isfile(fullpath) and len(re.findall('[0-9]{8}.txt$',f)) > 0:
+                        txt_file_name_list.append(f)
+                        self.log_display.info('找到txt檔案: ' + f)
+                for txt_file_name in txt_file_name_list:
+                    file = txt_file_name[:-4]
+                    dir_file_name = 'dir.'+file.upper()
+                    f = open(join(path, dir_file_name), 'w')
+                    f.write(txt_file_name + '\n')
+                    f.close()
+                    self.log_display.info('產出dir檔案: ' + dir_file_name)
+        except IOError:
+            self.log_display.error('此路徑不存在: ' + path)
+        except Exception:
+            self.log_display.error('未預期的錯誤，請通知自動化工具維護者')
+            print(Exception)
 
 
     #def show_edw_upload(self, frame):

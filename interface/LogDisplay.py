@@ -29,5 +29,17 @@ class LogDisplay:
         self.log_text.insert(tk.END, curr_time + '[錯誤]' + message + "\n", "error_tag")
         self.log_text.see(tk.END)
 
+    def hint(self, message):
+        curr_time = time.strftime("%Y-%m-%d %H:%M:%S ", time.localtime())
+        self.log_text.tag_config("hint_tag", foreground="blue")
+        self.log_text.insert(tk.END, curr_time + '[提示]' + message + "\n", "hint_tag")
+        self.log_text.see(tk.END)
+
+    def warn(self, message):
+        curr_time = time.strftime("%Y-%m-%d %H:%M:%S ", time.localtime())
+        self.log_text.tag_config("warn_tag", foreground="orange")
+        self.log_text.insert(tk.END, curr_time + '[警告]' + message + "\n", "warn_tag")
+        self.log_text.see(tk.END)
+
     def clear(self):
         self.log_text.delete(1.0, tk.END)
